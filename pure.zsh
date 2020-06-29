@@ -1,3 +1,5 @@
+#!/usr/bin/env zsh
+
 # Pure
 # by Sindre Sorhus
 # https://github.com/sindresorhus/pure
@@ -169,7 +171,7 @@ prompt_pure_preprompt_render() {
 
 	# Construct the new prompt with a clean preprompt.
 	local -ah ps1
-	ps1=(
+  ps1=(
 		${(j. .)preprompt_parts}  # Join parts, space separated.
 		$prompt_newline           # Separate preprompt and prompt.
 		$cleaned_ps1
@@ -182,8 +184,11 @@ prompt_pure_preprompt_render() {
 	expanded_prompt="${(S%%)PROMPT}"
 
 	if [[ $1 == precmd ]]; then
-		# Initial newline, for spaciousness.
-		print
+    if ! zstyle -t ':prompt:pure' 'compact' true; then
+    # If compact-mode not enabled
+		# Initial newline, for spaciousness
+      print 
+    fi
 	elif [[ $prompt_pure_last_prompt != $expanded_prompt ]]; then
 		# Redraw the prompt.
 		prompt_pure_reset_prompt
