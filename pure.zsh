@@ -29,6 +29,9 @@
 # Turns seconds into human readable time.
 # 165392 => 1d 21h 56m 32s
 # https://github.com/sindresorhus/pretty-time-zsh
+
+zmodload zsh/mathfunc
+
 prompt_pure_human_time_to_var() {
 	local human total_seconds=$1 var=$2
 	local days=$(( total_seconds / 60 / 60 / 24 ))
@@ -170,6 +173,48 @@ prompt_pure_preprompt_render() {
 	unset MATCH MBEGIN MEND
 
 	# Construct the new prompt with a clean preprompt.
+  
+
+  # PROMPT_nocolor=$( echo $PROMPT_single |
+  #     perl -pe 's/%F\{\$\{*\w+\[\w+:*\w*\]\}*}//g' | # get rid of variableized color codes
+  #     perl -pe 's/%F\{\d+\}//g' | # get rid of integer color codes
+  #     perl -pe 's/%f//g' | # get rid of trailing color resets
+  #     perl -pe 's/%\(\?\.\.\)//g'  # get rid of empty ternary statements
+  #   )
+
+
+  ps1_test=(
+    ${(j. .)preprompt_parts}  # Join parts, space separated.
+    $prompt_newline           # Separate preprompt and prompt.
+    $cleaned_ps1
+  )
+
+  PROMPT_test="${(j..)ps1_test}"
+  
+  echo "updating" `date`>> $HOME/testfile
+  PROMPT_nocolor=$( echo $PROMPT_test |
+      perl -pe 's/%F\{\$\{*\w+\[\w+:*\w*\]\}*}//g' |
+      perl -pe 's/%F\{\d+\}//g' | 
+      perl -pe 's/%f//g' | 
+      perl -pe 's/%\(\?\.\.\)//g' |
+      perl -pe 's/%\}//g'
+    )
+
+  length=${#${(S%%)PROMPT_nocolor}}
+
+
+  min_col_length=40
+  
+  max_prompt_length=$((int($COLUMNS/3*2)))
+  if (( $length < $max_prompt_length )); then
+    if (( $COLUMNS > $min_col_length )); then
+      prompt_noline='%666v '
+      prompt_newline=$prompt_noline
+    fi
+  else
+      prompt_newline=$'\n%{\r%}'
+  fi
+
 	local -ah ps1
   ps1=(
 		${(j. .)preprompt_parts}  # Join parts, space separated.
@@ -180,6 +225,7 @@ prompt_pure_preprompt_render() {
 	PROMPT="${(j..)ps1}"
 
 	# Expand the prompt for future comparision.
+
 	local expanded_prompt
 	expanded_prompt="${(S%%)PROMPT}"
 
@@ -191,7 +237,7 @@ prompt_pure_preprompt_render() {
     fi
 	elif [[ $prompt_pure_last_prompt != $expanded_prompt ]]; then
 		# Redraw the prompt.
-		prompt_pure_reset_prompt
+      prompt_pure_reset_prompt
 	fi
 
 	typeset -g prompt_pure_last_prompt=$expanded_prompt
