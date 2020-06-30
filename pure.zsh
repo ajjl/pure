@@ -170,43 +170,47 @@ prompt_pure_preprompt_render() {
 	fi
 	unset MATCH MBEGIN MEND
 
-	# Construct the new prompt with a clean preprompt.
-  
-
-
-
+	# Get the Current prompt length. If prompt is short, make it a single line prompt
+	# If prompt is long, make double line prompt (default)
   if zstyle -t ':prompt:pure' 'single_line' true; then
+		# First build the prompt
     local -ah ps1_test=(
       ${(j. .)preprompt_parts}  # Join parts, space separated.
       $prompt_newline           # Separate preprompt and prompt.
       $cleaned_ps1
     )
-
     local PROMPT_test="${(j..)ps1_test}"
+		#
+		# Decolorize prompt so can measure length
     local PROMPT_nocolor=$( echo $PROMPT_test | perl -pe'
       s/%F\{\$\{*\w+\[\w+:*\w*\]\}?}//g; # get rid of variableized color codes
       s/%F\{\d+\}//g;  # get rid of integer color codes
       s/%f//g;  # get rid of trailing color resets
       s/%\(\?\.\.\)//g; # get rid of empty ternary statements
-      s/%\}//g;
+      s/%\}//g; # get rid of end of escaped carraige return
       '
     )
-
+		# Get length
     local length=${#${(S%%)PROMPT_nocolor}}
+
     local min_col_length=40
     local max_prompt_length=$((int($COLUMNS/3*2)))
+		# Conditions for single line prompt
     if (( $length < $max_prompt_length )); then
       if (( $COLUMNS > $min_col_length )); then
+				# Use hack from wiki to make single line prompt
         prompt_noline='%666v '
         prompt_newline=$prompt_noline
       fi
     else
-        prompt_newline=$'\n%{\r%}'
+			# Reset to double line prompt if window size requires
+      prompt_newline=$'\n%{\r%}'
     fi
   fi
 
+	# Construct the new prompt with a clean preprompt.
 	local -ah ps1
-  ps1=(
+	ps1=(
 		${(j. .)preprompt_parts}  # Join parts, space separated.
 		$prompt_newline           # Separate preprompt and prompt.
 		$cleaned_ps1
@@ -215,19 +219,18 @@ prompt_pure_preprompt_render() {
 	PROMPT="${(j..)ps1}"
 
 	# Expand the prompt for future comparision.
-
 	local expanded_prompt
 	expanded_prompt="${(S%%)PROMPT}"
 
 	if [[ $1 == precmd ]]; then
-    if ! zstyle -t ':prompt:pure' 'compact' true; then
-    # If compact-mode not enabled
-		# Initial newline, for spaciousness
-      print 
-    fi
+		if ! zstyle -t ':prompt:pure' 'compact' true; then
+			# If compact-mode not enabled
+			# Initial newline, for spaciousness
+			print
+		fi
 	elif [[ $prompt_pure_last_prompt != $expanded_prompt ]]; then
 		# Redraw the prompt.
-      prompt_pure_reset_prompt
+		prompt_pure_reset_prompt
 	fi
 
 	typeset -g prompt_pure_last_prompt=$expanded_prompt
