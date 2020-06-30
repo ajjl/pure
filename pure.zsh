@@ -1,5 +1,3 @@
-#!/usr/bin/env zsh
-
 # Pure
 # by Sindre Sorhus
 # https://github.com/sindresorhus/pure
@@ -175,44 +173,36 @@ prompt_pure_preprompt_render() {
 	# Construct the new prompt with a clean preprompt.
   
 
-  # PROMPT_nocolor=$( echo $PROMPT_single |
-  #     perl -pe 's/%F\{\$\{*\w+\[\w+:*\w*\]\}*}//g' | # get rid of variableized color codes
-  #     perl -pe 's/%F\{\d+\}//g' | # get rid of integer color codes
-  #     perl -pe 's/%f//g' | # get rid of trailing color resets
-  #     perl -pe 's/%\(\?\.\.\)//g'  # get rid of empty ternary statements
-  #   )
 
 
-  ps1_test=(
-    ${(j. .)preprompt_parts}  # Join parts, space separated.
-    $prompt_newline           # Separate preprompt and prompt.
-    $cleaned_ps1
-  )
-
-  PROMPT_test="${(j..)ps1_test}"
-  
-  echo "updating" `date`>> $HOME/testfile
-  PROMPT_nocolor=$( echo $PROMPT_test |
-      perl -pe 's/%F\{\$\{*\w+\[\w+:*\w*\]\}*}//g' |
-      perl -pe 's/%F\{\d+\}//g' | 
-      perl -pe 's/%f//g' | 
-      perl -pe 's/%\(\?\.\.\)//g' |
-      perl -pe 's/%\}//g'
+  if zstyle -t ':prompt:pure' 'single_line' true; then
+    local -ah ps1_test=(
+      ${(j. .)preprompt_parts}  # Join parts, space separated.
+      $prompt_newline           # Separate preprompt and prompt.
+      $cleaned_ps1
     )
 
-  length=${#${(S%%)PROMPT_nocolor}}
+    local PROMPT_test="${(j..)ps1_test}"
+    local PROMPT_nocolor=$( echo $PROMPT_test | perl -pe'
+      s/%F\{\$\{*\w+\[\w+:*\w*\]\}?}//g; # get rid of variableized color codes
+      s/%F\{\d+\}//g;  # get rid of integer color codes
+      s/%f//g;  # get rid of trailing color resets
+      s/%\(\?\.\.\)//g; # get rid of empty ternary statements
+      s/%\}//g;
+      '
+    )
 
-
-  min_col_length=40
-  
-  max_prompt_length=$((int($COLUMNS/3*2)))
-  if (( $length < $max_prompt_length )); then
-    if (( $COLUMNS > $min_col_length )); then
-      prompt_noline='%666v '
-      prompt_newline=$prompt_noline
+    local length=${#${(S%%)PROMPT_nocolor}}
+    local min_col_length=40
+    local max_prompt_length=$((int($COLUMNS/3*2)))
+    if (( $length < $max_prompt_length )); then
+      if (( $COLUMNS > $min_col_length )); then
+        prompt_noline='%666v '
+        prompt_newline=$prompt_noline
+      fi
+    else
+        prompt_newline=$'\n%{\r%}'
     fi
-  else
-      prompt_newline=$'\n%{\r%}'
   fi
 
 	local -ah ps1
